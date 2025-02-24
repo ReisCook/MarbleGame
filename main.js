@@ -1,4 +1,3 @@
-// main.js
 class Game {
     constructor() {
         this.container = document.getElementById('game-container');
@@ -19,10 +18,14 @@ class Game {
         
         // Camera control variables
         this.cameraRotation = 0;
+        this.cameraVerticalRotation = Math.PI / 6; // Initial vertical angle (30 degrees)
+        this.minVerticalRotation = -Math.PI / 3;   // Minimum vertical angle (-60 degrees)
+        this.maxVerticalRotation = Math.PI / 2;     // Maximum vertical angle (90 degrees)
         this.cameraDistance = 20;
         this.cameraHeight = 15;
         this.isMouseDown = false;
         this.lastMouseX = 0;
+        this.lastMouseY = 0;
         this.mouseSensitivity = 0.003;
         
         this.setupEventListeners();
@@ -53,7 +56,7 @@ class Game {
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            2000  // Increased to see distant stars
+            2000
         );
         this.camera.position.set(0, 15, 20);
         this.cameraTarget = new THREE.Vector3();
@@ -144,6 +147,7 @@ class Game {
             if (e.button === 2) { // Right mouse button
                 this.isMouseDown = true;
                 this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
             }
         });
 
@@ -160,8 +164,20 @@ class Game {
         this.renderer.domElement.addEventListener('mousemove', (e) => {
             if (this.isMouseDown) {
                 const deltaX = e.clientX - this.lastMouseX;
+                const deltaY = e.clientY - this.lastMouseY;
+                
                 this.cameraRotation += deltaX * this.mouseSensitivity;
+                this.cameraVerticalRotation -= deltaY * this.mouseSensitivity;
+                
+                // Clamp vertical rotation
+                this.cameraVerticalRotation = Utils.clamp(
+                    this.cameraVerticalRotation,
+                    this.minVerticalRotation,
+                    this.maxVerticalRotation
+                );
+                
                 this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
             }
         });
 
@@ -180,12 +196,17 @@ class Game {
     updateCamera() {
         const playerPos = this.player.getMesh().position;
         
-        const cameraX = Math.sin(this.cameraRotation) * this.cameraDistance;
-        const cameraZ = Math.cos(this.cameraRotation) * this.cameraDistance;
+        // Calculate camera position using spherical coordinates
+        const horizontalDistance = Math.cos(this.cameraVerticalRotation) * this.cameraDistance;
+        const verticalDistance = Math.sin(this.cameraVerticalRotation) * this.cameraDistance;
+        
+        const cameraX = Math.sin(this.cameraRotation) * horizontalDistance;
+        const cameraZ = Math.cos(this.cameraRotation) * horizontalDistance;
+        const cameraY = verticalDistance;
         
         const targetPosition = new THREE.Vector3(
             playerPos.x + cameraX,
-            playerPos.y + this.cameraHeight,
+            playerPos.y + cameraY,
             playerPos.z + cameraZ
         );
         
