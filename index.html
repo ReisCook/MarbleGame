@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marble Game</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;,">
+  <meta charset="UTF-8">
+  <!-- Ensure proper scaling and disable pinch-to-zoom -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Enable full screen mode on iOS when added to home screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Marble Blast Clone</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/x-icon" href="data:image/x-icon;,">
 </head>
 <body>
-    <div id="game-container"></div>
-    <div id="ui">
-        <div id="speed">Speed: 0</div>
-    </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="utils.js"></script>
-    <script src="Player.js"></script>
-    <script src="Level.js"></script>
-    <script src="main.js"></script>
+  <div id="game-container"></div>
+  <div id="ui">
+    <div id="speed">Speed: 0</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="utils.js"></script>
+  <script src="Player.js"></script>
+  <script src="Level.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
