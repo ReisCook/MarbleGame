@@ -1,6 +1,9 @@
 // main.js
 class Game {
     constructor() {
+        // Detect mobile devices via user agent
+        this.isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
         this.container = document.getElementById('game-container');
         this.scene = new THREE.Scene();
         this.clock = new THREE.Clock();
@@ -13,16 +16,35 @@ class Game {
         this.setupCamera();
         this.setupLights();
         this.setupUI();
-        this.setupAudio(); // Set up background soundtrack
+        this.setupAudio(); // Background soundtrack
         
+        // For mobile, add onscreen controls; desktop will use keyboard/mouse
+        if (this.isMobile) {
+            this.setupMobileControls();
+            this.setupDeviceOrientation();
+            // Override movement so that player's movement is based on tilt
+            this.playerMovementOverride = true;
+        } else {
+            this.playerMovementOverride = false;
+        }
+        
+        // Create level and player
         this.level = new Level(this.scene);
         this.player = new Player(this.scene);
         
-        // Camera control variables
+        // If mobile, override the player's getMovementDirection to use tilt data
+        if (this.isMobile) {
+            this.player.getMovementDirection = () => {
+                // Use the tiltControl vector computed from deviceorientation
+                return this.tiltControl.clone();
+            };
+        }
+        
+        // Camera control variables for desktop mouse control (still active on mobile for camera)
         this.cameraRotation = 0;
-        this.cameraVerticalRotation = Math.PI / 6; // Initial vertical angle (30 degrees)
-        this.minVerticalRotation = -Math.PI / 3;   // Minimum vertical angle (-60 degrees)
-        this.maxVerticalRotation = Math.PI / 2;     // Maximum vertical angle (90 degrees)
+        this.cameraVerticalRotation = Math.PI / 6; // 30° initial vertical angle
+        this.minVerticalRotation = -Math.PI / 3;   // -60°
+        this.maxVerticalRotation = Math.PI / 2;      // 90°
         this.cameraDistance = 20;
         this.cameraHeight = 15;
         this.isMouseDown = false;
@@ -31,7 +53,7 @@ class Game {
         this.mouseSensitivity = 0.003;
         
         this.setupEventListeners();
-        this.addResumeAudioListener(); // Add listener to resume audio on user interaction
+        this.addResumeAudioListener(); // Resume audio context on user gesture
         this.animate();
     }
 
@@ -133,7 +155,7 @@ class Game {
     }
 
     setupAudio() {
-        // Create an AudioListener and add it to the camera
+        // Create an AudioListener and attach it to the camera
         this.audioListener = new THREE.AudioListener();
         this.camera.add(this.audioListener);
         
@@ -151,11 +173,74 @@ class Game {
     }
 
     addResumeAudioListener() {
-        // Modern browsers require a user gesture to resume audio context
+        // Modern browsers require a user gesture to resume the AudioContext
         document.body.addEventListener('click', () => {
             if (this.audioListener.context.state === 'suspended') {
                 this.audioListener.context.resume();
             }
+        });
+    }
+
+    setupMobileControls() {
+        // Create onscreen buttons for Jump and Boost only on mobile
+        this.jumpButton = document.createElement('button');
+        this.jumpButton.textContent = "Jump";
+        this.jumpButton.style.position = 'fixed';
+        this.jumpButton.style.bottom = '80px';
+        this.jumpButton.style.right = '20px';
+        this.jumpButton.style.padding = '20px';
+        this.jumpButton.style.fontSize = '18px';
+        this.jumpButton.style.borderRadius = '50%';
+        document.body.appendChild(this.jumpButton);
+
+        this.boostButton = document.createElement('button');
+        this.boostButton.textContent = "Boost";
+        this.boostButton.style.position = 'fixed';
+        this.boostButton.style.bottom = '20px';
+        this.boostButton.style.right = '20px';
+        this.boostButton.style.padding = '20px';
+        this.boostButton.style.fontSize = '18px';
+        this.boostButton.style.borderRadius = '50%';
+        document.body.appendChild(this.boostButton);
+
+        // Jump action on touch or mouse down
+        this.jumpButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.player.jump();
+        });
+        this.jumpButton.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.player.jump();
+        });
+
+        // Boost action: press and hold to boost, release to stop
+        this.boostButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.player.keys.boost = true;
+        });
+        this.boostButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.player.keys.boost = false;
+        });
+        this.boostButton.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.player.keys.boost = true;
+        });
+        this.boostButton.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.player.keys.boost = false;
+        });
+    }
+
+    setupDeviceOrientation() {
+        // Initialize a vector to hold tilt data
+        this.tiltControl = new THREE.Vector3(0, 0, 0);
+        window.addEventListener('deviceorientation', (event) => {
+            // event.gamma: left/right tilt; event.beta: front/back tilt
+            let tiltX = THREE.MathUtils.clamp(event.gamma / 30, -1, 1);
+            let tiltZ = THREE.MathUtils.clamp(event.beta / 30, -1, 1);
+            // Adjust for typical portrait orientation: forward tilt moves the marble forward (negative Z)
+            this.tiltControl.set(tiltX, 0, -tiltZ);
         });
     }
 
@@ -174,7 +259,7 @@ class Game {
         });
 
         this.renderer.domElement.addEventListener('mousedown', (e) => {
-            if (e.button === 2) { // Right mouse button
+            if (e.button === 2) { // Right mouse button for camera control
                 this.isMouseDown = true;
                 this.lastMouseX = e.clientX;
                 this.lastMouseY = e.clientY;
