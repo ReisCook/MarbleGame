@@ -39,6 +39,7 @@ class Level {
         };
 
         this.createLevel();
+        this.createSpaceEnvironment();
     }
 
     createLevel() {
@@ -316,6 +317,11 @@ class Level {
             gem.position.y = gem.userData.floatHeight + 
                 Math.sin(Date.now() * gem.userData.floatSpeed) * 0.5;
         });
+
+        // Add this for rotating stars
+        if (this.starSystem) {
+            this.starSystem.rotation.y += deltaTime * 0.01;
+        }
 
         // Add any additional level animations or updates here
     }
@@ -641,5 +647,55 @@ class Level {
 
         this.startTime = saveData.startTime;
         this.initialGemCount = saveData.initialGemCount;
+    }
+
+    createSpaceEnvironment() {
+        this.createSkybox();
+        this.createStarfield();
+    }
+    
+    createSkybox() {
+        const loader = new THREE.CubeTextureLoader();
+        const skyboxTextures = [
+            'skybox/space_right.png',
+            'skybox/space_left.png',
+            'skybox/space_top.png',
+            'skybox/space_bottom.png',
+            'skybox/space_front.png',
+            'skybox/space_back.png'
+        ];
+        
+        const skybox = loader.load(skyboxTextures);
+        this.scene.background = skybox;
+    }
+    
+    createStarfield() {
+        const starCount = 2000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(starCount * 3);
+        
+        for(let i = 0; i < starCount * 3; i += 3) {
+            const radius = Math.random() * 400 + 200;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            
+            positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            positions[i + 2] = radius * Math.cos(phi);
+        }
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const material = new THREE.PointsMaterial({
+            color: 0xFFFFFF,
+            size: 2,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        
+        this.starSystem = new THREE.Points(geometry, material);
+        this.scene.add(this.starSystem);
     }
 }
