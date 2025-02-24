@@ -18,29 +18,27 @@ class Game {
         this.setupUI();
         this.setupAudio(); // Background soundtrack
         
-        // For mobile, add onscreen controls; desktop will use keyboard/mouse
+        // For mobile, add onscreen controls and device orientation support.
         if (this.isMobile) {
             this.setupMobileControls();
             this.setupDeviceOrientation();
-            // Override movement so that player's movement is based on tilt
             this.playerMovementOverride = true;
         } else {
             this.playerMovementOverride = false;
         }
         
-        // Create level and player
+        // Create level and player.
         this.level = new Level(this.scene);
         this.player = new Player(this.scene);
         
-        // If mobile, override the player's getMovementDirection to use tilt data
+        // On mobile, override movement with the tilt vector.
         if (this.isMobile) {
             this.player.getMovementDirection = () => {
-                // Use the tiltControl vector computed from deviceorientation
                 return this.tiltControl.clone();
             };
         }
         
-        // Camera control variables for desktop mouse control (still active on mobile for camera)
+        // Desktop camera control variables (also active on mobile for camera manipulation).
         this.cameraRotation = 0;
         this.cameraVerticalRotation = Math.PI / 6; // 30° initial vertical angle
         this.minVerticalRotation = -Math.PI / 3;   // -60°
@@ -53,7 +51,7 @@ class Game {
         this.mouseSensitivity = 0.003;
         
         this.setupEventListeners();
-        this.addResumeAudioListener(); // Resume audio context on user gesture
+        this.addResumeAudioListener(); // Resume audio & request full screen on first user tap.
         this.animate();
     }
 
@@ -155,14 +153,14 @@ class Game {
     }
 
     setupAudio() {
-        // Create an AudioListener and attach it to the camera
+        // Create an AudioListener and attach it to the camera.
         this.audioListener = new THREE.AudioListener();
         this.camera.add(this.audioListener);
         
-        // Create a global audio source
+        // Create a global audio source.
         this.backgroundSound = new THREE.Audio(this.audioListener);
         
-        // Load the sound and configure it
+        // Load the sound and configure it.
         const audioLoader = new THREE.AudioLoader();
         audioLoader.load('audio/foregone-destruction.mp3', (buffer) => {
             this.backgroundSound.setBuffer(buffer);
@@ -173,16 +171,29 @@ class Game {
     }
 
     addResumeAudioListener() {
-        // Modern browsers require a user gesture to resume the AudioContext
+        // Modern browsers require a user gesture to resume the AudioContext.
+        // Also, request full screen (using appropriate prefixes) on first tap.
+        this.fullScreenRequested = false;
         document.body.addEventListener('click', () => {
             if (this.audioListener.context.state === 'suspended') {
                 this.audioListener.context.resume();
+            }
+            if (!this.fullScreenRequested) {
+                this.fullScreenRequested = true;
+                let elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
             }
         });
     }
 
     setupMobileControls() {
-        // Create onscreen buttons for Jump and Boost only on mobile
+        // Create onscreen buttons for Jump and Boost on mobile.
         this.jumpButton = document.createElement('button');
         this.jumpButton.textContent = "Jump";
         this.jumpButton.style.position = 'fixed';
@@ -203,7 +214,7 @@ class Game {
         this.boostButton.style.borderRadius = '50%';
         document.body.appendChild(this.boostButton);
 
-        // Jump action on touch or mouse down
+        // Jump action on touch or mouse down.
         this.jumpButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.player.jump();
@@ -213,7 +224,7 @@ class Game {
             this.player.jump();
         });
 
-        // Boost action: press and hold to boost, release to stop
+        // Boost action: press and hold to boost, release to stop.
         this.boostButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.player.keys.boost = true;
@@ -233,15 +244,29 @@ class Game {
     }
 
     setupDeviceOrientation() {
-        // Initialize a vector to hold tilt data
+        // Initialize a vector to hold tilt data.
         this.tiltControl = new THREE.Vector3(0, 0, 0);
-        window.addEventListener('deviceorientation', (event) => {
-            // event.gamma: left/right tilt; event.beta: front/back tilt
-            let tiltX = THREE.MathUtils.clamp(event.gamma / 30, -1, 1);
-            let tiltZ = THREE.MathUtils.clamp(event.beta / 30, -1, 1);
-            // Adjust for typical portrait orientation: forward tilt moves the marble forward (negative Z)
-            this.tiltControl.set(tiltX, 0, -tiltZ);
-        });
+        // For iOS 13+ devices, request permission for device orientation events.
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(response => {
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', this.handleDeviceOrientation.bind(this), false);
+                    }
+                })
+                .catch(console.error);
+        } else {
+            window.addEventListener('deviceorientation', this.handleDeviceOrientation.bind(this), false);
+        }
+    }
+
+    handleDeviceOrientation(event) {
+        // event.gamma: left/right tilt; event.beta: front/back tilt.
+        let tiltX = THREE.MathUtils.clamp(event.gamma / 30, -1, 1);
+        let tiltZ = THREE.MathUtils.clamp(event.beta / 30, -1, 1);
+        // In portrait mode, a forward tilt moves the marble forward (negative Z).
+        this.tiltControl.set(tiltX, 0, -tiltZ);
     }
 
     setupEventListeners() {
@@ -259,7 +284,7 @@ class Game {
         });
 
         this.renderer.domElement.addEventListener('mousedown', (e) => {
-            if (e.button === 2) { // Right mouse button for camera control
+            if (e.button === 2) { // Right mouse button for camera control.
                 this.isMouseDown = true;
                 this.lastMouseX = e.clientX;
                 this.lastMouseY = e.clientY;
@@ -284,7 +309,7 @@ class Game {
                 this.cameraRotation += deltaX * this.mouseSensitivity;
                 this.cameraVerticalRotation -= deltaY * this.mouseSensitivity;
                 
-                // Clamp vertical rotation
+                // Clamp vertical rotation.
                 this.cameraVerticalRotation = Utils.clamp(
                     this.cameraVerticalRotation,
                     this.minVerticalRotation,
@@ -311,7 +336,7 @@ class Game {
     updateCamera() {
         const playerPos = this.player.getMesh().position;
         
-        // Calculate camera position using spherical coordinates
+        // Calculate camera position using spherical coordinates.
         const horizontalDistance = Math.cos(this.cameraVerticalRotation) * this.cameraDistance;
         const verticalDistance = Math.sin(this.cameraVerticalRotation) * this.cameraDistance;
         
