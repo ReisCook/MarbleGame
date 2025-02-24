@@ -1,3 +1,4 @@
+// main.js
 class Game {
     constructor() {
         this.container = document.getElementById('game-container');
@@ -12,6 +13,7 @@ class Game {
         this.setupCamera();
         this.setupLights();
         this.setupUI();
+        this.setupAudio(); // Set up background soundtrack
         
         this.level = new Level(this.scene);
         this.player = new Player(this.scene);
@@ -29,6 +31,7 @@ class Game {
         this.mouseSensitivity = 0.003;
         
         this.setupEventListeners();
+        this.addResumeAudioListener(); // Add listener to resume audio on user interaction
         this.animate();
     }
 
@@ -127,6 +130,33 @@ class Game {
         });
 
         this.gameStartTime = Date.now();
+    }
+
+    setupAudio() {
+        // Create an AudioListener and add it to the camera
+        this.audioListener = new THREE.AudioListener();
+        this.camera.add(this.audioListener);
+        
+        // Create a global audio source
+        this.backgroundSound = new THREE.Audio(this.audioListener);
+        
+        // Load the sound and configure it
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('audio/foregone-destruction.mp3', (buffer) => {
+            this.backgroundSound.setBuffer(buffer);
+            this.backgroundSound.setLoop(true);
+            this.backgroundSound.setVolume(0.5);
+            this.backgroundSound.play();
+        });
+    }
+
+    addResumeAudioListener() {
+        // Modern browsers require a user gesture to resume audio context
+        document.body.addEventListener('click', () => {
+            if (this.audioListener.context.state === 'suspended') {
+                this.audioListener.context.resume();
+            }
+        });
     }
 
     setupEventListeners() {
