@@ -1,3 +1,7 @@
+# Marble Game
+
+This game is a 3D physics-based platformer where you control a marble navigating through challenging levels.
+
 ## Requirements
 
 - A modern web browser with WebGL support and hardware acceleration enabled.
@@ -31,3 +35,6 @@
 - **WebGL Issues:**  
   - Update your graphics drivers.  
   - Try an alternative browser with robust WebGL support.
+
+- **Chrome WebGPU Flags:**  
+  - Note: Enabling experimental WebGPU flags in Chrome can sometimes interfere with proper hardware acceleration for WebGL. If you experience issues, consider disabling these flags.
