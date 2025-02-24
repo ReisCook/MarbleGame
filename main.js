@@ -51,7 +51,7 @@ class Game {
         this.mouseSensitivity = 0.003;
         
         this.setupEventListeners();
-        this.addResumeAudioListener(); // Resume audio & request full screen on first user tap.
+        this.addResumeAudioListener(); // Resume audio & attempt full screen on first user tap.
         this.animate();
     }
 
@@ -172,21 +172,17 @@ class Game {
 
     addResumeAudioListener() {
         // Modern browsers require a user gesture to resume the AudioContext.
-        // Also, request full screen (using appropriate prefixes) on first tap.
-        this.fullScreenRequested = false;
+        // For mobile, attempt to request full screen on the container element.
         document.body.addEventListener('click', () => {
             if (this.audioListener.context.state === 'suspended') {
                 this.audioListener.context.resume();
             }
-            if (!this.fullScreenRequested) {
-                this.fullScreenRequested = true;
-                let elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen();
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) {
-                    elem.msRequestFullscreen();
+            // Attempt full screen only on mobile.
+            if (this.isMobile && !document.fullscreenElement) {
+                if (this.container.requestFullscreen) {
+                    this.container.requestFullscreen();
+                } else if (this.container.webkitRequestFullscreen) {
+                    this.container.webkitRequestFullscreen();
                 }
             }
         });
