@@ -53,7 +53,7 @@ class Game {
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            1000
+            2000  // Increased to see distant stars
         );
         this.camera.position.set(0, 15, 20);
         this.cameraTarget = new THREE.Vector3();
